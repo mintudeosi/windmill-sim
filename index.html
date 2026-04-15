@@ -1,13 +1,12 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wind Energy Simulator</title>
+    <title>Wind Energy Game</title>
     <style>
         body {
             font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', sans-serif;
-            background-color: #87CEEB; /* Sky blue */
             margin: 0;
             padding: 0;
             display: flex;
@@ -15,128 +14,138 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            touch-action: none; /* Prevents iPad pull-to-refresh */
+            background: linear-gradient(to bottom, #4CA1AF, #C4E0E5);
+            touch-action: none;
+            user-select: none;
         }
-        h1 {
-            color: #333;
+
+        /* Moving Clouds */
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            opacity: 0.8;
+            z-index: 0;
+        }
+        .cloud::before, .cloud::after {
+            content: ''; position: absolute; background: white; border-radius: 50%;
+        }
+        .c1 { width: 100px; height: 30px; top: 10%; left: -120px; animation: float 15s linear infinite; }
+        .c1::before { width: 50px; height: 50px; top: -20px; left: 15px; }
+        .c1::after { width: 40px; height: 40px; top: -10px; left: 50px; }
+        .c2 { width: 150px; height: 40px; top: 25%; left: -200px; animation: float 25s linear infinite 5s; transform: scale(0.8); }
+        .c2::before { width: 70px; height: 70px; top: -30px; left: 20px; }
+        .c2::after { width: 60px; height: 60px; top: -20px; left: 70px; }
+
+        @keyframes float {
+            100% { left: 110vw; }
+        }
+
+        /* Top HUD (Heads Up Display) */
+        .hud {
+            width: 90%;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 15px 30px;
             margin-top: 20px;
-            font-size: 2.5rem;
-            text-align: center;
-        }
-        .container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            width: 100%;
-            gap: 50px;
-        }
-        /* Windmill CSS */
-        .windmill-container {
-            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
             align-items: center;
+            z-index: 10;
         }
-        .blades {
-            width: 150px;
-            height: 150px;
-            position: relative;
-            transform-origin: center;
-            transition: transform 0.1s linear;
-            z-index: 2;
+        .level-title { font-size: 2rem; color: #ff6b6b; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px;}
+        
+        .progress-container {
+            width: 100%; height: 30px; background: #ddd; border-radius: 15px; overflow: hidden; border: 3px solid #333; position: relative;
         }
+        .progress-bar {
+            height: 100%; width: 0%; background: linear-gradient(90deg, #ffcc00, #ff9900); transition: width 0.1s linear;
+        }
+        .progress-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.2rem; color: #333;
+        }
+
+        /* Main Game Area */
+        .game-area {
+            display: flex; align-items: center; justify-content: center; flex: 1; width: 100%; position: relative; z-index: 5;
+        }
+
+        /* Windmill */
+        .windmill-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -50px;}
+        .blades { width: 180px; height: 180px; position: relative; z-index: 2; }
         .blade {
-            position: absolute;
-            width: 20px;
-            height: 75px;
-            background: #fff;
-            border-radius: 10px 10px 0 0;
-            top: 0;
-            left: 65px;
-            transform-origin: bottom center;
-            border: 2px solid #ccc;
+            position: absolute; width: 25px; height: 90px; background: #fdfdfd; border-radius: 12px 12px 0 0;
+            top: 0; left: 77.5px; transform-origin: bottom center; border: 2px solid #ccc; box-shadow: inset -3px 0 5px rgba(0,0,0,0.1);
         }
         .blade:nth-child(2) { transform: rotate(120deg); }
         .blade:nth-child(3) { transform: rotate(240deg); }
         .motor {
-            width: 40px;
-            height: 40px;
-            background: #555;
-            border-radius: 50%;
-            position: absolute;
-            top: 55px;
-            left: 55px;
-            z-index: 3;
-            border: 3px solid #333;
+            width: 50px; height: 50px; background: #e74c3c; border-radius: 50%; position: absolute;
+            top: 65px; left: 65px; z-index: 3; border: 4px solid #c0392b; display: flex; align-items: center; justify-content: center;
         }
+        .motor::after { content: '⚡'; font-size: 1.2rem; }
         .tower {
-            width: 20px;
-            height: 200px;
-            background: #888;
-            margin-top: -75px;
-            z-index: 1;
+            width: 30px; height: 220px; background: linear-gradient(to right, #95a5a6, #bdc3c7, #7f8c8d);
+            margin-top: -90px; z-index: 1; border-radius: 5px 5px 0 0;
         }
-        /* Wires and LED */
-        .wires {
-            width: 150px;
-            height: 10px;
-            background: repeating-linear-gradient(90deg, #ff4c4c, #ff4c4c 10px, #333 10px, #333 20px);
-            margin-top: 50px;
-            position: relative;
+
+        /* Power Wire */
+        .wire-container { width: 200px; height: 20px; position: relative; margin: 0 20px; margin-top: 50px;}
+        .wire {
+            width: 100%; height: 8px; background: #333; position: absolute; top: 6px; border-radius: 4px;
         }
-        .energy-flow {
-            position: absolute;
-            top: 0; left: 0; height: 100%; width: 100%;
-            background: rgba(255, 255, 0, 0.5);
-            opacity: 0;
+        .electricity {
+            width: 100%; height: 8px; position: absolute; top: 6px;
+            background: repeating-linear-gradient(90deg, transparent, transparent 10px, #ffff00 10px, #ffff00 20px);
+            background-size: 40px 100%; animation: flow 0.5s linear infinite; opacity: 0; border-radius: 4px;
         }
-        .led-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        @keyframes flow { 100% { background-position: 40px 0; } }
+
+        /* Target Object */
+        .target-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .target-emoji { font-size: 8rem; transition: transform 0.3s; filter: grayscale(100%); }
+        .target-emoji.active { filter: grayscale(0%); transform: scale(1.1); }
+        .target-glow {
+            position: absolute; width: 150px; height: 150px; background: radial-gradient(circle, rgba(255,255,0,0.6) 0%, transparent 70%);
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
         }
-        .led {
-            width: 80px;
-            height: 100px;
-            background: #555;
-            border-radius: 50px 50px 10px 10px;
-            transition: all 0.2s;
-        }
-        .led-base {
-            width: 60px;
-            height: 20px;
-            background: #333;
-            border-radius: 0 0 10px 10px;
-        }
+
         /* Controls */
         .controls {
-            width: 80%;
-            background: rgba(255,255,255,0.9);
-            padding: 20px;
-            border-radius: 20px;
-            text-align: center;
-            margin-bottom: 40px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            width: 90%; background: white; padding: 20px 30px; border-radius: 20px 20px 0 0; text-align: center;
+            box-shadow: 0 -10px 20px rgba(0,0,0,0.1); z-index: 10;
         }
-        input[type=range] {
-            width: 100%;
-            height: 40px;
-            margin: 20px 0;
-        }
-        .status-text {
-            font-size: 1.8rem;
-            color: #0056b3;
-            min-height: 80px;
+        .controls h2 { margin: 0 0 15px 0; color: #2c3e50; font-size: 2rem;}
+        input[type=range] { width: 100%; height: 50px; margin-bottom: 10px; }
+        .status-message { font-size: 1.5rem; color: #34495e; font-weight: bold; min-height: 40px; }
+
+        /* Ground */
+        .ground { position: absolute; bottom: 0; width: 100%; height: 120px; background: #2ecc71; z-index: 1; border-top: 10px solid #27ae60;}
+
+        /* Particles */
+        .particle { position: absolute; font-size: 1.5rem; pointer-events: none; animation: pop 1s ease-out forwards; z-index: 20;}
+        @keyframes pop {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(1.5); opacity: 0; }
         }
     </style>
 </head>
 <body>
 
-    <h1>Wind Energy Simulator</h1>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
 
-    <div class="container">
-        <div class="windmill-container">
+    <div class="hud">
+        <h1 class="level-title" id="levelTitle">Level 1: Power the Light!</h1>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-text" id="progressText">0 / 100 Energy</div>
+        </div>
+    </div>
+
+    <div class="game-area">
+        <div class="windmill-wrapper" id="windmill">
             <div class="blades" id="blades">
                 <div class="blade"></div>
                 <div class="blade"></div>
@@ -146,68 +155,141 @@
             <div class="tower"></div>
         </div>
 
-        <div class="wires">
-            <div class="energy-flow" id="flow"></div>
+        <div class="wire-container">
+            <div class="wire"></div>
+            <div class="electricity" id="electricity"></div>
         </div>
 
-        <div class="led-container">
-            <div class="led" id="led"></div>
-            <div class="led-base"></div>
+        <div class="target-wrapper">
+            <div class="target-glow" id="glow"></div>
+            <div class="target-emoji" id="targetEmoji">💡</div>
         </div>
     </div>
 
     <div class="controls">
-        <h2>Wind Speed</h2>
+        <h2>💨 Wind Speed Controller 💨</h2>
         <input type="range" id="windSlider" min="0" max="100" value="0">
-        <div class="status-text" id="status">No wind. The blades are still, and no electricity is being generated.</div>
+        <div class="status-message" id="statusMessage">Slide to create wind!</div>
     </div>
+
+    <div class="ground"></div>
 
     <script>
         const slider = document.getElementById('windSlider');
         const blades = document.getElementById('blades');
-        const led = document.getElementById('led');
-        const flow = document.getElementById('flow');
-        const status = document.getElementById('status');
+        const electricity = document.getElementById('electricity');
+        const targetEmoji = document.getElementById('targetEmoji');
+        const glow = document.getElementById('glow');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const levelTitle = document.getElementById('levelTitle');
+        const statusMessage = document.getElementById('statusMessage');
+        const windmill = document.getElementById('windmill');
 
         let rotation = 0;
+        let currentEnergy = 0;
+        let currentLevel = 0;
 
-        function updateSimulator() {
+        // Level Data
+        const levels = [
+            { target: 100, emoji: '💡', name: 'Power the Light!', msg: 'Keep blowing! The light needs energy.' },
+            { target: 300, emoji: '🎮', name: 'Power the Video Game!', msg: 'Awesome! Now let us power up a game console!' },
+            { target: 600, emoji: '🏠', name: 'Power the House!', msg: 'Whoa! Can you spin it fast enough to power a whole house?' },
+            { target: 1000, emoji: '🏙️', name: 'Power the City!', msg: 'SUPER MEGA WIND POWER! Light up the city!' },
+            { target: Infinity, emoji: '🌍', name: 'Earth Saver!', msg: 'You are a Clean Energy Hero! You powered everything!' }
+        ];
+
+        function spawnParticle() {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.innerText = '⚡';
+            
+            // Random direction
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 50 + Math.random() * 50;
+            particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+            particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+            
+            // Position at motor
+            particle.style.left = '80px';
+            particle.style.top = '70px';
+            
+            windmill.appendChild(particle);
+            setTimeout(() => particle.remove(), 1000);
+        }
+
+        function triggerLevelUp() {
+            targetEmoji.style.transform = 'scale(1.5) rotate(10deg)';
+            setTimeout(() => targetEmoji.style.transform = 'scale(1)', 300);
+            
+            currentLevel++;
+            if(currentLevel < levels.length) {
+                targetEmoji.innerText = levels[currentLevel].emoji;
+                levelTitle.innerText = `Level ${currentLevel + 1}: ${levels[currentLevel].name}`;
+                statusMessage.innerText = levels[currentLevel].msg;
+            }
+        }
+
+        function updateGame() {
             const speed = parseInt(slider.value);
             
             // Rotate blades
-            rotation += speed * 0.2; 
+            rotation += speed * 0.25; 
             blades.style.transform = `rotate(${rotation}deg)`;
 
-            // Update LED and Wires
-            if (speed < 20) {
-                led.style.backgroundColor = '#555';
-                led.style.boxShadow = 'none';
-                flow.style.opacity = 0;
-                if (speed === 0) {
-                    status.innerHTML = "<strong>0%:</strong> No wind. The blades are still, and no electricity is being generated.";
-                } else {
-                    status.innerHTML = `<strong>${speed}%:</strong> A light breeze. The blades are turning, but it's not fast enough for the generator to power the light.`;
-                }
-            } else {
-                // Calculate brightness (20 to 100 maps to opacity/glow)
-                const brightness = (speed - 20) / 80; 
+            if (speed > 20 && currentLevel < levels.length - 1) {
+                // Generate Power
+                const powerGenerated = (speed - 20) / 50;
+                currentEnergy += powerGenerated;
                 
-                led.style.backgroundColor = `rgba(255, 255, 0, ${0.5 + (brightness * 0.5)})`;
-                led.style.boxShadow = `0 0 ${20 + (brightness * 80)}px ${10 + (brightness * 30)}px rgba(255, 255, 0, ${brightness})`;
+                // Visuals for electricity
+                electricity.style.opacity = speed / 100;
+                electricity.style.animationDuration = `${1.5 - (speed/100)}s`;
                 
-                flow.style.opacity = brightness;
+                targetEmoji.classList.add('active');
+                glow.style.opacity = (speed / 100) * 0.8;
 
-                if (speed < 60) {
-                    status.innerHTML = `<strong>${speed}%:</strong> The wind is picking up! Kinetic energy is turning into electrical energy. The LED is glowing!`;
-                } else {
-                    status.innerHTML = `<strong>${speed}%:</strong> Strong wind! The generator is spinning fast, creating maximum electrical energy for a super bright light!`;
+                // Random particles on high speed
+                if(speed > 60 && Math.random() < 0.1) spawnParticle();
+
+                // Check Level Up
+                if (currentEnergy >= levels[currentLevel].target) {
+                    triggerLevelUp();
                 }
+
+                if(speed > 80 && Math.random() < 0.05) {
+                    statusMessage.innerText = "MAXIMUM WIND POWER! 🌪️";
+                } else if (speed > 40 && Math.random() < 0.05) {
+                    statusMessage.innerText = "Great job! The electricity is flowing! ⚡";
+                }
+
+            } else {
+                electricity.style.opacity = 0;
+                targetEmoji.classList.remove('active');
+                glow.style.opacity = 0;
+                if(speed === 0) statusMessage.innerText = "Slide to create wind!";
+                else if (speed <= 20) statusMessage.innerText = "Too slow! The generator needs more wind!";
             }
 
-            requestAnimationFrame(updateSimulator);
+            // Update Progress Bar
+            if (currentLevel < levels.length - 1) {
+                const target = levels[currentLevel].target;
+                const prevTarget = currentLevel === 0 ? 0 : levels[currentLevel - 1].target;
+                const currentLevelProgress = currentEnergy - prevTarget;
+                const currentLevelTotal = target - prevTarget;
+                
+                const percentage = Math.min(100, Math.max(0, (currentLevelProgress / currentLevelTotal) * 100));
+                progressBar.style.width = `${percentage}%`;
+                progressText.innerText = `${Math.floor(currentEnergy)} / ${target} Energy`;
+            } else {
+                progressBar.style.width = `100%`;
+                progressText.innerText = `MAX POWER ACHIEVED!`;
+            }
+
+            requestAnimationFrame(updateGame);
         }
 
-        updateSimulator();
+        updateGame();
     </script>
 </body>
 </html>
